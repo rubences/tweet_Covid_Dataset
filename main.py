@@ -29,4 +29,20 @@ DESCRIPCION BREVE DEL DATASET Y LOS OBJETIVOS A CUMPLIR.\n",
         "    * [Hyperparameter Tuning -- Grid Search -- Cross Validation](#32) \n",
         "    * [Ensemble Modeling](#33)\n",
         "    * [Prediction and Submission](#34)"
+
+#Cargar librerías necesarias \n",
+        "import numpy as np # algebra lineal\n",
+        "import pandas as pd # procesado de datos, ficheros CSV\n",
+        "import math\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "plt.style.use(\"seaborn-whitegrid\")\n",
+        "\n",
+        "import seaborn as sns\n",
+        "\n",
+        "from collections import Counter\n",
+        "\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\")"'''
+
 '''

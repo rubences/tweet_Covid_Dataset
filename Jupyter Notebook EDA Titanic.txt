@@ -1,0 +1,1921 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "display_name": "Python 3",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.7.3"
+    },
+    "colab": {
+      "name": "titanic-eda.ipynb",
+      "provenance": []
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "8N1UmfIlWabc"
+      },
+      "source": [
+        "# Conectar google colab con google drive\n",
+        "from google.colab import drive\n",
+        "drive.mount('/content/gdrive')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7SO4C-YOWTN-"
+      },
+      "source": [
+        "# Introducción\n",
+        "El hundimiento del Titanic es uno de los naufragios más notorios de la historia. En 1912, durante su viaje, el Titanic se hundió después de chocar con un iceberg, matando a 1502 de los 2224 pasajeros y tripulación.\n",
+        "\n",
+        "<font color = 'blue'>\n",
+        "Contenido: \n",
+        "\n",
+        "1. [Cargar y chequear datos](#1)\n",
+        "1. [Descripción de variables](#2)\n",
+        "    * [Analísis univariado de variables](#3)\n",
+        "        * [Variables categóricas](#4)\n",
+        "        * [Variables numéricas](#5)\n",
+        "1. [Análisis básico de datos](#6)\n",
+        "1. [Detección de outliers](#7)\n",
+        "1. [Valores perdidos](#8)\n",
+        "    * [Encontrar valores perdidos](#9)\n",
+        "    * [Rellenar valores perdidos](#10)\n",
+        "1. [Visualización](#11)\n",
+        "    * [Correlación entre variables](#12)\n",
+        "    * [SibSp -- Survived](#13)\n",
+        "    * [Parch -- Survived](#14)\n",
+        "    * [Pclass -- Survived](#15)\n",
+        "    * [Age -- Survived](#16)\n",
+        "    * [Pclass -- Survived -- Age](#17)\n",
+        "    * [Embarked -- Sex -- Pclass -- Survived](#18)\n",
+        "    * [Embarked -- Sex -- Fare -- Survived](#19)\n",
+        "    * [Rellenar perdidos: Característica edad](#20)\n",
+        "1. [Ingeniería de características](#21)\n",
+        "    * [Name -- Title](#22)\n",
+        "    * [Family Size](#23)\n",
+        "    * [Embarked](#24)\n",
+        "    * [Ticket](#25)\n",
+        "    * [Pclass](#26)\n",
+        "    * [Sex](#27)\n",
+        "    * [Eliminar Passenger ID y Cabin](#28)\n",
+        "1. [Modeling](#29)\n",
+        "    * [Train - Test Split](#30)\n",
+        "    * [Simple Logistic Regression](#31)\n",
+        "    * [Hyperparameter Tuning -- Grid Search -- Cross Validation](#32) \n",
+        "    * [Ensemble Modeling](#33)\n",
+        "    * [Prediction and Submission](#34)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "_cell_guid": "b1076dfc-b9ad-4769-8c92-a6c4dae69d19",
+        "_uuid": "8f2839f25d086af736a60e9eeb907d3b93b6e0e5",
+        "id": "Ktqry27bWTOA"
+      },
+      "source": [
+        "# Cargar librerías necesarias\n",
+        "import numpy as np # algebra lineal\n",
+        "import pandas as pd # procesado de daros, ficheros CSV\n",
+        "import math\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "plt.style.use(\"seaborn-whitegrid\")\n",
+        "\n",
+        "import seaborn as sns\n",
+        "\n",
+        "from collections import Counter\n",
+        "\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\")"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "J9W9Kx72WTOB"
+      },
+      "source": [
+        "<a id = \"1\"></a><br>\n",
+        "# Cargar y chequear datos"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AX6QRj7vWTOC"
+      },
+      "source": [
+        "train_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_train.csv\")\n",
+        "test_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_test.csv\")\n",
+        "test_PassengerId = train_df[\"PassengerId\"]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "_cell_guid": "79c7e3d0-c299-4dcb-8224-4455121ee9b0",
+        "_uuid": "d629ff2d2480ee46fbb7e2d37f6b5fab8052498a",
+        "id": "RYuBodNyWTOC"
+      },
+      "source": [
+        "train_df.columns"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "rYszV3CuWTOD"
+      },
+      "source": [
+        "train_df.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5HptViwtWTOE"
+      },
+      "source": [
+        "train_df.describe()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "QbDRegquWTOE"
+      },
+      "source": [
+        "<a id = \"2\"></a><br>\n",
+        "# Descripción de variables\n",
+        "1. PassengerId: ID único para cada pasajero\n",
+        "1. Survived: pasajero sobrevive (1) o muere (0)\n",
+        "1. Pclass: clase del pasajero\n",
+        "1. Name: nombre\n",
+        "1. Sex: genero del pasajero\n",
+        "1. Age: edad del pasajero\n",
+        "1. SibSp: número de hermanos/conyujes\n",
+        "1. Parch: número de padres/niños \n",
+        "1. Ticket: número del ticke\n",
+        "1. Fare: cantidad de dinero que costó el ticket\n",
+        "1. Cabin: Categoría de la cabina\n",
+        "1. Embarked: Puero dónde embarcó el pasajero (C = Cherbourg, Q = Queenstown, S = Southampton)\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "F1kwVRRxWTOF"
+      },
+      "source": [
+        "train_df.info()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "fV0SsGgBWTOG"
+      },
+      "source": [
+        "* float64(2): Fare, Age\n",
+        "* int64(5): Pclass, sibsp, parch, passengerId y survived\n",
+        "* object(5): Cabin, embarked, ticket, name y sex"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "dcKDRHZMWTOG"
+      },
+      "source": [
+        "<a id = \"3\"></a><br>\n",
+        "# Análisis univariado de variables\n",
+        "* Variables categóricas: Survived, Sex, Pclass, Embarked, Cabin, Name, Ticket, Sibsp y Parch\n",
+        "* Variables numéricas: Fare, age y passengerId"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "EtACsaPDWTOG"
+      },
+      "source": [
+        "<a id = \"4\"></a><br>\n",
+        "## Variables categóricas"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "CudGAyyXWTOH"
+      },
+      "source": [
+        "def bar_plot(variable):\n",
+        "    \"\"\"\n",
+        "        input: variable ex: \"Sex\"\n",
+        "        output: bar plot & value count\n",
+        "    \"\"\"\n",
+        "    # get feature\n",
+        "    var = train_df[variable]\n",
+        "    # count number of categorical variable(value/sample)\n",
+        "    varValue = var.value_counts()\n",
+        "    \n",
+        "    # visualize\n",
+        "    plt.figure(figsize = (9,3))\n",
+        "    plt.bar(varValue.index, varValue)\n",
+        "    plt.xticks(varValue.index, varValue.index.values)\n",
+        "    plt.ylabel(\"Frecuencia\")\n",
+        "    plt.title(variable)\n",
+        "    plt.show()\n",
+        "    print(\"{}: \\n {}\".format(variable,varValue))\n",
+        "    "
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "42Ns7SQRWTOH"
+      },
+      "source": [
+        "category1 = [\"Survived\",\"Sex\",\"Pclass\",\"Embarked\",\"SibSp\", \"Parch\"]\n",
+        "for c in category1:\n",
+        "    bar_plot(c)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "081nAJqwWTOI"
+      },
+      "source": [
+        "category2 = [\"Cabin\", \"Name\", \"Ticket\"]\n",
+        "for c in category2:\n",
+        "    print(\"{} \\n\".format(train_df[c].value_counts()))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "HgmwyhlpWTOI"
+      },
+      "source": [
+        "# Selecting categorical data for univariate analysis:\n",
+        "\n",
+        "cats = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Embarked']\n",
+        "\n",
+        "\n",
+        "def plotFrequency(cats):\n",
+        "    '''A plot for visualize categorical data, showing both absolute and relative frequencies'''\n",
+        "    \n",
+        "    fig, axes = plt.subplots(math.ceil(len(cats) / 3), 3, figsize=(20, 12))\n",
+        "    axes = axes.flatten()\n",
+        "\n",
+        "    for ax, cat in zip(axes, cats):\n",
+        "        total = float(len(train_df[cat]))\n",
+        "        sns.countplot(train_df[cat], palette='plasma', ax=ax)\n",
+        "\n",
+        "        for p in ax.patches:\n",
+        "            height = p.get_height()\n",
+        "            ax.text(p.get_x() + p.get_width() / 2.,\n",
+        "                    height + 10,\n",
+        "                    '{:1.2f}%'.format((height / total) * 100),\n",
+        "                    ha=\"center\")\n",
+        "\n",
+        "        plt.ylabel('Count', fontsize=15, weight='bold')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "W2Eeowc7WTOJ"
+      },
+      "source": [
+        "plotFrequency(cats)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "bl3EfmVOWTOJ"
+      },
+      "source": [
+        "Observaciones:\n",
+        "\n",
+        "Lamentablemente, la mayoría de los pasajeros del barco no sobreviven, alrededor de un 62% por ciento.\n",
+        "\n",
+        "Si bien tiene la mayor parte de los pasajeros en el barco, la 3ra clase también tiene la tasa de bajas más alta. Mientras tanto, la primera clase tiene más tasa de supervivencia.\n",
+        "\n",
+        "Una vez más, la mayoría de los pasajeros en el barco son hombres (alrededor de dos tercios de los pasajeros) y también tienen una proporción mucho mayor de bajas. Esto confirma que la parte de las mujeres de la \"política de mujeres y niños primero\" tuvo un efecto en nuestro caso Titanic.\n",
+        "\n",
+        "La mayoría de nuestros pasajeros viajan solos, también tienen una alta tasa de siniestralidad. Entonces, ¿estar casado o con la familia tiene algún efecto positivo en la supervivencia?\n",
+        "\n",
+        "La mayoría de los pasajeros se embarcan desde Southampton. Las tasas de supervivencia difieren entre los puertos, podemos relacionar esto con familias o simplemente usarlo como está."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WdAPc6RAWTOK"
+      },
+      "source": [
+        "def plotsurvival(cats, data):\n",
+        "    \n",
+        "    '''A plot for bivariate analysis.'''\n",
+        "    \n",
+        "    fig, axes = plt.subplots(math.ceil(len(cats) / 3), 3, figsize=(20, 12))\n",
+        "    axes = axes.flatten()\n",
+        "\n",
+        "    for ax, cat in zip(axes, cats):\n",
+        "        if cat == 'Survived':\n",
+        "            sns.countplot(train_df[cat], palette='plasma', ax=ax)\n",
+        "\n",
+        "        else:\n",
+        "\n",
+        "            sns.countplot(x=cat,\n",
+        "                          data=data,\n",
+        "                          hue='Survived',\n",
+        "                          palette='plasma',\n",
+        "                          ax=ax)\n",
+        "            ax.legend(title='Survived?',\n",
+        "                      loc='upper right',\n",
+        "                      labels=['No', 'Yes'])\n",
+        "\n",
+        "        plt.ylabel('Count', fontsize=15, weight='bold')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iVzOXez8WTOK"
+      },
+      "source": [
+        "plotsurvival(cats, train_df)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "x3yy_af0WTOL"
+      },
+      "source": [
+        "<a id = \"5\"></a><br>\n",
+        "## Variables numéricas"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "SbtP-gnoWTOL"
+      },
+      "source": [
+        "def plot_hist(variable):\n",
+        "    plt.figure(figsize = (9,3))\n",
+        "    plt.hist(train_df[variable], bins = 50)\n",
+        "    plt.xlabel(variable)\n",
+        "    plt.ylabel(\"Frecuencia\")\n",
+        "    plt.title(\"Distribución variable {} con histograma\".format(variable))\n",
+        "    plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4cjYvS3jWTOL"
+      },
+      "source": [
+        "numericVar = [\"Fare\", \"Age\",\"PassengerId\"]\n",
+        "for n in numericVar:\n",
+        "    plot_hist(n)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ejDjFtJ4WTOM"
+      },
+      "source": [
+        "def plot_3chart(df, feature):\n",
+        "    import matplotlib.gridspec as gridspec\n",
+        "    from matplotlib.ticker import MaxNLocator\n",
+        "    from scipy.stats import norm\n",
+        "    from scipy import stats\n",
+        "    \n",
+        "    # Creating a customized chart. and giving in figsize and everything.\n",
+        "    \n",
+        "    fig = plt.figure(constrained_layout=True, figsize=(12, 8))\n",
+        "    \n",
+        "    # Creating a grid of 3 cols and 3 rows.\n",
+        "    \n",
+        "    grid = gridspec.GridSpec(ncols=3, nrows=3, figure=fig)\n",
+        "\n",
+        "    # Customizing the histogram grid.\n",
+        "    \n",
+        "    ax1 = fig.add_subplot(grid[0, :2])\n",
+        "    \n",
+        "    # Set the title.\n",
+        "    \n",
+        "    ax1.set_title('Histogram')\n",
+        "    \n",
+        "    # Plot the histogram.\n",
+        "    \n",
+        "    sns.distplot(df.loc[:, feature],\n",
+        "                 hist=True,\n",
+        "                 kde=True,\n",
+        "                 fit=norm,\n",
+        "                 ax=ax1,\n",
+        "                 color='#e74c3c')\n",
+        "    ax1.legend(labels=['Normal', 'Actual'])\n",
+        "\n",
+        "    # Customizing the QQ_plot.\n",
+        "    \n",
+        "    ax2 = fig.add_subplot(grid[1, :2])\n",
+        "    \n",
+        "    # Set the title.\n",
+        "    \n",
+        "    ax2.set_title('Probability Plot')\n",
+        "    \n",
+        "    # Plotting the QQ_Plot.\n",
+        "    \n",
+        "    stats.probplot(df.loc[:, feature].fillna(np.mean(df.loc[:, feature])),\n",
+        "                   plot=ax2)\n",
+        "    ax2.get_lines()[0].set_markerfacecolor('#e74c3c')\n",
+        "    ax2.get_lines()[0].set_markersize(12.0)\n",
+        "\n",
+        "    # Customizing the Box Plot.\n",
+        "    \n",
+        "    ax3 = fig.add_subplot(grid[:, 2])\n",
+        "    \n",
+        "    # Set title.\n",
+        "    \n",
+        "    ax3.set_title('Box Plot')\n",
+        "    \n",
+        "    # Plotting the box plot.\n",
+        "    \n",
+        "    sns.boxplot(df.loc[:, feature], orient='v', ax=ax3, color='#e74c3c')\n",
+        "    ax3.yaxis.set_major_locator(MaxNLocator(nbins=24))\n",
+        "\n",
+        "    plt.suptitle(f'{feature}', fontsize=24)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "eDRTh47-WTOM"
+      },
+      "source": [
+        "plot_3chart(train_df, 'Age')\n",
+        "plot_3chart(train_df, 'Fare')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2kbPTZCCWTON"
+      },
+      "source": [
+        "- Parece que nuestros valores de edad están bien distribuidos, poco sesgados a la derecha con un gran número de adultos jóvenes. Con una edad media de 28 años, hay un poco de outliers.\n",
+        "\n",
+        "- La distribución de tarifas no se ve bien, no se ajusta en absoluto a la distribución normal. Si bien la mayoría de las tarifas de los pasajeros están por debajo de 30, hay algunos valores atípicos, como más de 500 gastados en tickets."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5hKf-i9uWTON"
+      },
+      "source": [
+        "train_df.info()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "3rHIhsTxWTON"
+      },
+      "source": [
+        "<a id = \"6\"></a><br>\n",
+        "# Análisis básico de datos\n",
+        "* Pclass - Survived\n",
+        "* Sex - Survived\n",
+        "* SibSp - Survived\n",
+        "* Parch - Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "8aD_379sWTOO"
+      },
+      "source": [
+        "# Plcass vs Survived\n",
+        "train_df[[\"Pclass\",\"Survived\"]].groupby([\"Pclass\"], as_index = False).mean().sort_values(by=\"Survived\",ascending = False)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "CuxIwS1iWTOO"
+      },
+      "source": [
+        "# Sex vs Survived\n",
+        "train_df[[\"Sex\",\"Survived\"]].groupby([\"Sex\"], as_index = False).mean().sort_values(by=\"Survived\",ascending = False)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "MuT5KklYWTOO"
+      },
+      "source": [
+        "# Sibsp vs Survived\n",
+        "train_df[[\"SibSp\",\"Survived\"]].groupby([\"SibSp\"], as_index = False).mean().sort_values(by=\"Survived\",ascending = False)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "GYGlZgXsWTOP"
+      },
+      "source": [
+        "# Parch vs Survived\n",
+        "train_df[[\"Parch\",\"Survived\"]].groupby([\"Parch\"], as_index = False).mean().sort_values(by=\"Survived\",ascending = False)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "DooMBlJ-WTOP"
+      },
+      "source": [
+        "<a id = \"7\"></a><br>\n",
+        "# Detección de outliers"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lRc_EVavWTOP"
+      },
+      "source": [
+        "def detect_outliers(df,features):\n",
+        "    outlier_indices = []\n",
+        "    \n",
+        "    for c in features:\n",
+        "        # 1st quartile\n",
+        "        Q1 = np.percentile(df[c],25)\n",
+        "        # 3rd quartile\n",
+        "        Q3 = np.percentile(df[c],75)\n",
+        "        # IQR\n",
+        "        IQR = Q3 - Q1\n",
+        "        # Outlier step\n",
+        "        outlier_step = IQR * 1.5\n",
+        "        # detect outlier and their indeces\n",
+        "        outlier_list_col = df[(df[c] < Q1 - outlier_step) | (df[c] > Q3 + outlier_step)].index\n",
+        "        # store indeces\n",
+        "        outlier_indices.extend(outlier_list_col)\n",
+        "    \n",
+        "    outlier_indices = Counter(outlier_indices)\n",
+        "    multiple_outliers = list(i for i, v in outlier_indices.items() if v > 2)\n",
+        "    \n",
+        "    return multiple_outliers"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bdJ5ynVyWTOP"
+      },
+      "source": [
+        "train_df.loc[detect_outliers(train_df,[\"Age\",\"SibSp\",\"Parch\",\"Fare\"])]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "HNPOgeBiWTOQ"
+      },
+      "source": [
+        "# drop outliers\n",
+        "#train_df = train_df.drop(detect_outliers(train_df,[\"Age\",\"SibSp\",\"Parch\",\"Fare\"]),axis = 0).reset_index(drop = True)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "M3CuW3cNWTOQ"
+      },
+      "source": [
+        "<a id = \"8\"></a><br>\n",
+        "# Valores perdidos\n",
+        "* Encontrar valores perdidos\n",
+        "* Rellenar valores perdidos"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "0TRUdLNqWTOQ"
+      },
+      "source": [
+        "train_df_len = len(train_df)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "gNuVIewgWTOR"
+      },
+      "source": [
+        "train_df.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "FeIDmy8pWTOR"
+      },
+      "source": [
+        "<a id = \"9\"></a><br>\n",
+        "## Encontrar valores perdidos"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9Rndpjd2WTOR"
+      },
+      "source": [
+        "sns.heatmap(train_df.isnull(),\n",
+        "            yticklabels=False,\n",
+        "            cbar=False,\n",
+        "            cmap='magma')\n",
+        "\n",
+        "plt.title('Valores perdidos en conjunto de train')\n",
+        "\n",
+        "plt.xticks(rotation=90)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "l7utuFl0WTOS"
+      },
+      "source": [
+        "train_df.columns[train_df.isnull().any()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7xminyIfWTOS"
+      },
+      "source": [
+        "train_df.isnull().sum()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "PDfyUUngWTOS"
+      },
+      "source": [
+        "<a id = \"10\"></a><br>\n",
+        "## Rellenar valores perdidos\n",
+        "* Embarked tiene dos valores perdidos\n",
+        "* Fare sólo tiene 1"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "aMrKRXBoWTOS"
+      },
+      "source": [
+        "train_df[train_df[\"Embarked\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Vztdj86RWTOT"
+      },
+      "source": [
+        "train_df.boxplot(column=\"Fare\",by = \"Embarked\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Af1Cr6xvWTOT"
+      },
+      "source": [
+        "train_df[\"Embarked\"] = train_df[\"Embarked\"].fillna(\"C\")\n",
+        "train_df[train_df[\"Embarked\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Xapd5ttVWTOT"
+      },
+      "source": [
+        "train_df[train_df[\"Fare\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "V6CNJiMZWTOT"
+      },
+      "source": [
+        "train_df[\"Fare\"] = train_df[\"Fare\"].fillna(np.mean(train_df[train_df[\"Pclass\"] == 3][\"Fare\"]))"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ScIpNz0_WTOU"
+      },
+      "source": [
+        "train_df[train_df[\"Fare\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lZfRAHYyWTOU"
+      },
+      "source": [
+        "<a id = \"11\"></a><br>\n",
+        "# Visualización"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "syGve8BOWTOU"
+      },
+      "source": [
+        "<a id = \"12\"></a><br>\n",
+        "## Correlación entre Sibsp -- Parch -- Age -- Fare -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ZlAkfCnZWTOU"
+      },
+      "source": [
+        "corr = train_df.corr()\n",
+        "\n",
+        "f,ax = plt.subplots(figsize=(9,6))\n",
+        "sns.heatmap(corr, annot = True, linewidths=1.5 , fmt = '.2f',ax=ax)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "sEZPTtNwWTOV"
+      },
+      "source": [
+        "<a id = \"13\"></a><br>\n",
+        "## SibSp -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WECuIFr9WTOV"
+      },
+      "source": [
+        "g = sns.factorplot(x = \"SibSp\", y = \"Survived\", data = train_df, kind = \"bar\", size = 6)\n",
+        "g.set_ylabels(\"Probabilidad de superviviencia\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Wy7IGw-3WTOV"
+      },
+      "source": [
+        "* Teniendo un valor alto de SibSp tienes menos probabilidad de sobrevivir\n",
+        "* Si sibsp == 0 o 1 o 2, pel pasajero tiene mas probabilidad de vivir"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7OHHV9qkWTOV"
+      },
+      "source": [
+        "<a id = \"14\"></a><br>\n",
+        "## Parch -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Y7gjrKDtWTOW"
+      },
+      "source": [
+        "g = sns.factorplot(x = \"Parch\", y = \"Survived\", kind = \"bar\", data = train_df, size = 6)\n",
+        "g.set_ylabels(\"Probabilidad de supervivencia\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "U6M1pC-sWTOW"
+      },
+      "source": [
+        "* Pequeñas familias tienen mas probabilidad de sobrevivir\n",
+        "* Hay una gran desviación en pasajeros con parch = 3"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "dVVIyhw7WTOW"
+      },
+      "source": [
+        "<a id = \"15\"></a><br>\n",
+        "## Pclass -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9MyAJOeEWTOW"
+      },
+      "source": [
+        "g = sns.factorplot(x = \"Pclass\", y = \"Survived\", data = train_df, kind = \"bar\", size = 6)\n",
+        "g.set_ylabels(\"Probabilidad de supervivencia\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "CeNPsg8jWTOW"
+      },
+      "source": [
+        "<a id = \"16\"></a><br>\n",
+        "## Age -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "S-uCryvwWTOX"
+      },
+      "source": [
+        "g = sns.FacetGrid(train_df, col = \"Survived\")\n",
+        "g.map(sns.distplot, \"Age\", bins = 25)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mz8i3ocwWTOX"
+      },
+      "source": [
+        "* age <= 10 tiene una buena tasa de supervivencia,\n",
+        "* pasajeros ancianos (80) sobrevivieron,\n",
+        "* Gran cantidad de pasajeros con 20 años no sobrevivieron,\n",
+        "* la mayoria de pasajeros está entre 15-35 años,\n",
+        "* Usar la edad para rellenar valores perdidos en edad"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "9HBka1uXWTOX"
+      },
+      "source": [
+        "<a id = \"17\"></a><br>\n",
+        "## Pclass -- Survived -- Age"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AuTe7d2bWTOX"
+      },
+      "source": [
+        "g = sns.FacetGrid(train_df, col = \"Survived\", row = \"Pclass\", size = 2)\n",
+        "g.map(plt.hist, \"Age\", bins = 25)\n",
+        "g.add_legend()\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "ddKCBxwOWTOY"
+      },
+      "source": [
+        "<a id = \"18\"></a><br>\n",
+        "## Embarked -- Sex -- Pclass -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pq26DZ_hWTOY"
+      },
+      "source": [
+        "g = sns.FacetGrid(train_df, row = \"Embarked\", size = 2)\n",
+        "g.map(sns.pointplot, \"Pclass\",\"Survived\",\"Sex\")\n",
+        "g.add_legend()\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SFscXnu3WTOY"
+      },
+      "source": [
+        "* Las mujeres sobreviven más que los hombres.\n",
+        "* Los hombres tienen mejor ratio de supervivencia si pclass es 3 y embarcan en C."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Me-BOWnKWTOY"
+      },
+      "source": [
+        "<a id = \"19\"></a><br>\n",
+        "## Embarked -- Sex -- Fare -- Survived"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "tCRcJBbvWTOY"
+      },
+      "source": [
+        "g = sns.FacetGrid(train_df, row = \"Embarked\", col = \"Survived\", size = 2.3)\n",
+        "g.map(sns.barplot, \"Sex\", \"Fare\")\n",
+        "g.add_legend()\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "h9X72PGCWTOZ"
+      },
+      "source": [
+        "* Pasajeros que pagaron más dinero tienen más probabilidad de sobrevivir"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "oyrgacZkWTOZ"
+      },
+      "source": [
+        "<a id = \"20\"></a><br>\n",
+        "## Rellenar valores perdidos: Característica Age"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "0sHZEVnHWTOZ"
+      },
+      "source": [
+        "train_df[train_df[\"Age\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jaUe9QEHWTOZ"
+      },
+      "source": [
+        "sns.factorplot(x = \"Sex\", y = \"Age\", data = train_df, kind = \"box\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Iw7YM4PWWTOa"
+      },
+      "source": [
+        "sns.factorplot(x = \"Sex\", y = \"Age\", hue = \"Pclass\",data = train_df, kind = \"box\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "FC6_lnXsWTOa"
+      },
+      "source": [
+        "Los pasajeros de primera clase son mayores que los de segunda y los de segunda mayores que los de tercera"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "P_Ufk6Z_WTOa"
+      },
+      "source": [
+        "sns.factorplot(x = \"Parch\", y = \"Age\", data = train_df, kind = \"box\")\n",
+        "sns.factorplot(x = \"SibSp\", y = \"Age\", data = train_df, kind = \"box\")\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "ALRmVfxOWTOa"
+      },
+      "source": [
+        "sns.heatmap(train_df[[\"Age\",\"Sex\",\"SibSp\",\"Parch\",\"Pclass\"]].corr(), annot = True)\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "l-qVKJgkWTOb"
+      },
+      "source": [
+        "Age no está correlacionada con sex pero está correlacionada con parch, sibsp y pclass."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "op29gLEMWTOb"
+      },
+      "source": [
+        "index_nan_age = list(train_df[\"Age\"][train_df[\"Age\"].isnull()].index)\n",
+        "for i in index_nan_age:\n",
+        "    age_pred = train_df[\"Age\"][((train_df[\"SibSp\"] == train_df.iloc[i][\"SibSp\"]) &(train_df[\"Parch\"] == train_df.iloc[i][\"Parch\"])& (train_df[\"Pclass\"] == train_df.iloc[i][\"Pclass\"]))].median()\n",
+        "    age_med = train_df[\"Age\"].median()\n",
+        "    if not np.isnan(age_pred):\n",
+        "        train_df[\"Age\"].iloc[i] = age_pred\n",
+        "    else:\n",
+        "        train_df[\"Age\"].iloc[i] = age_med"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "AEZEuOGpWTOb"
+      },
+      "source": [
+        "train_df[train_df[\"Age\"].isnull()]"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mh3RTAxxWTOb"
+      },
+      "source": [
+        "## ¿Qué hay en el nombre?\n",
+        "Cada valor de Nombre de pasajero contiene el título del pasajero que podemos extraer y descubrir.\n",
+        "Para crear una nueva variable \"Título\":\n",
+        "1. Estoy usando el método 'dividir' por comas para dividir el Nombre en dos partes y guardar la segunda parte\n",
+        "2. Estoy dividiendo parte guardada por punto y guardo la primera parte del resultado\n",
+        "3. Para eliminar los espacios alrededor del título, estoy usando el método 'dividir'\n",
+        "\n",
+        "Para visualizar cuántos pasajeros tienen cada título, elegí countplot."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WtWtdIEuWTOb"
+      },
+      "source": [
+        "train_df['Title'] = train_df['Name'].str.split(',', expand = True)[1].str.split('.', expand = True)[0].str.strip(' ')\n",
+        "\n",
+        "plt.figure(figsize=(6, 5))\n",
+        "ax = sns.countplot( x = 'Title', data = train_df, palette = \"hls\", order = train_df['Title'].value_counts().index)\n",
+        "_ = plt.xticks(\n",
+        "    rotation=45, \n",
+        "    horizontalalignment='right',\n",
+        "    fontweight='light'  \n",
+        ")\n",
+        "\n",
+        "plt.title('Passengers distribution by titles',fontsize= 14)\n",
+        "plt.ylabel('Number of passengers')\n",
+        "\n",
+        "# calculate passengers for each category\n",
+        "labels = (train_df['Title'].value_counts())\n",
+        "# add result numbers on barchart\n",
+        "for i, v in enumerate(labels):\n",
+        "    ax.text(i, v+10, str(v), horizontalalignment = 'center', size = 10, color = 'black')\n",
+        "    \n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "KpDVuGyGWTOc"
+      },
+      "source": [
+        "El título más frecuente entre los pasajeros es Mister (Mr.): título general o respeto de un hombre adulto. El segundo título por su frecuencia es Señorita (mujer soltera), el tercero - Señora (mujer casada). Otros títulos son menos frecuentes.\n",
+        "\n",
+        "* Maestro: a fines del siglo XIX, la etiqueta dictaba que los hombres debían ser tratados como Señor y los niños como Maestro.\n",
+        "* Mme - Madame. un título de respeto francés equivalente a “Sra.”, usado solo o antepuesto al nombre o título de casada de una mujer. Agregaré a \"Sra.\".\n",
+        "* Mlle - Mademoiselle es un título de cortesía francés, abreviado Mlle, que tradicionalmente se le da a una mujer soltera. El equivalente en inglés es \"Miss\". Agregaré al grupo \"Señorita\".\n",
+        "* Dr. - Doctor es un título académico\n",
+        "* Rev. - Reverendo, por lo general es un título de cortesía para los ministros o pastores cristianos protestantes.\n",
+        "\n",
+        "Grupo de títulos \"militares\":\n",
+        "* Capt. -Captain es un título para el comandante de una unidad militar\n",
+        "* Mayor es un rango militar de estado de oficial comisionado\n",
+        "* Coronel - El título honorífico de Coronel es conferido por varios estados de los EE. UU. Y ciertas unidades militares de la Commonwealth of Nations\n",
+        "\n",
+        "Grupo de títulos \"Honor\":\n",
+        "* Señor: es un discurso honorífico formal en inglés para hombres. Sir se usa para hombres titulados caballeros, es decir, de órdenes de caballería, y más tarde también para barones y otros cargos.\n",
+        "* la condesa - es un título histórico de nobleza\n",
+        "* Lady: un título formal en el Reino Unido. Una mujer con título de nobleza u honorario.\n",
+        "* Jonkheer - es un honorífico en los Países Bajos que denota el rango más bajo dentro de la nobleza.\n",
+        "* Don: es un prefijo honorífico que se usa principalmente en España y el antiguo Imperio español, Italia, Portugal, Filipinas, América Latina, Croacia y Goa. (masculino)\n",
+        "* Dona - Forma femenina de don (honorífico) un título español, portugués, del sur de Italia y filipino, dado como una señal de respeto."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "HzQxR2coWTOc"
+      },
+      "source": [
+        "title_dict = {  'Mr':     'Mr',\n",
+        "                'Mrs':    'Mrs',\n",
+        "                'Miss':   'Miss',\n",
+        "                'Master': 'Master',\n",
+        "              \n",
+        "                'Ms':     'Miss',\n",
+        "                'Mme':    'Mrs',\n",
+        "                'Mlle':   'Miss',\n",
+        "\n",
+        "                'Capt':   'military',\n",
+        "                'Col':    'military',\n",
+        "                'Major':  'military',\n",
+        "\n",
+        "                'Dr':     'Dr',\n",
+        "                'Rev':    'Rev',\n",
+        "                  \n",
+        "                'Sir':    'honor',\n",
+        "                'the Countess': 'honor',\n",
+        "                'Lady':   'honor',\n",
+        "                'Jonkheer': 'honor',\n",
+        "                'Don':    'honor',\n",
+        "                'Dona':   'honor' }\n",
+        "\n",
+        "# map titles to category\n",
+        "train_df['Title_category'] = train_df['Title'].map(title_dict)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "YS3VX3lpWTOc"
+      },
+      "source": [
+        "fig = plt.figure(figsize=(12, 5))\n",
+        "\n",
+        "\n",
+        "ax1 = fig.add_subplot(121)\n",
+        "ax = sns.countplot(x = 'Title_category', data = train_df, palette = \"hls\", order = train_df['Title_category'].value_counts().index)\n",
+        "_ = plt.xticks(\n",
+        "    rotation=45, \n",
+        "    horizontalalignment='right',\n",
+        "    fontweight='light'  \n",
+        ")\n",
+        "plt.title('Passengers distribution by titles',fontsize= 12)\n",
+        "plt.ylabel('Number of passengers')\n",
+        "\n",
+        "# calculate passengers for each category\n",
+        "labels = (train_df['Title_category'].value_counts())\n",
+        "# add result numbers on barchart\n",
+        "for i, v in enumerate(labels):\n",
+        "    ax.text(i, v+10, str(v), horizontalalignment = 'center', size = 10, color = 'black')\n",
+        "    \n",
+        "\n",
+        "plt.tight_layout()\n",
+        "\n",
+        "ax2 = fig.add_subplot(122)\n",
+        "surv_by_title_cat = train_df.groupby('Title_category')['Survived'].value_counts(normalize = True).unstack()\n",
+        "surv_by_title_cat = surv_by_title_cat.sort_values(by=1, ascending = False)\n",
+        "surv_by_title_cat.plot(kind='bar', stacked='True', color=[\"#3f3e6fd1\", \"#85c6a9\"], ax = ax2)\n",
+        "\n",
+        "plt.legend( ( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "_ = plt.xticks(\n",
+        "    rotation=45, \n",
+        "    horizontalalignment='right',\n",
+        "    fontweight='light'  \n",
+        ")\n",
+        "\n",
+        "\n",
+        "plt.title('Proportion of survived/drowned by titles (train data)',fontsize= 12)\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NoUDWsMFWTOd"
+      },
+      "source": [
+        "category_survived = sns.catplot(x=\"Title_category\",  col=\"Survived\",\n",
+        "                data = train_df, kind=\"count\",\n",
+        "                height=4, aspect=.7)\n",
+        "\n",
+        "category_survived.set_xticklabels(rotation=45, \n",
+        "    horizontalalignment='right',\n",
+        "    fontweight='light')\n",
+        "\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "-76vU55HWTOd"
+      },
+      "source": [
+        "## Cabina\n",
+        "\n",
+        "Del número de la cabina podemos extraer la primera letra, que nos informará sobre la ubicación de la cabina en el barco. Y me parece un conocimiento muy importante:\n",
+        "* Qué tan cerca se encuentra la cabina de los botes salvavidas\n",
+        "* Qué tan lejos de las partes más dañadas del barco\n",
+        "* Qué tan cerca de las personas que tienen información sobre lo que está sucediendo y cómo actuar\n",
+        "* Cuántos obstáculos tuvo el pasajero en el camino hacia el bote salvavidas\n",
+        "\n",
+        "Había 8 cubiertas: la cubierta superior, para los botes salvavidas, otras 7 estaban debajo y tenían símbolos de letras:\n",
+        "* ** A **: no recorría toda la eslora del buque (es decir, no llegaba desde la popa hasta la proa del buque), y estaba destinado a pasajeros de ** 1ra clase **.\n",
+        "* ** B **: no recorría toda la eslora del barco (estaba interrumpido por 37 metros sobre la cubierta C, y servía de lugar para anclas en el frente).\n",
+        "* ** C **: en la parte delantera de la cocina, comedor para la tripulación, así como un área de paseo para pasajeros de 3ra clase.\n",
+        "* ** D **: un área de paseo para pasajeros.\n",
+        "* ** E **: cabinas de ** 1ra y 2da clase **.\n",
+        "* ** F **: parte de las cabinas de pasajeros de la ** 2da clase **, la mayoría de las cabinas de la ** 3ra clase **.\n",
+        "* ** G **: no recorría toda la eslora de la nave, las salas de calderas estaban ubicadas en el centro.\n",
+        "* ** T ** - ¿cubierta del barco?\n",
+        "\n",
+        "A los pasajeros sin información de cubierta, les atribuiré la letra U (como desconocida)."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "IEGWosKjWTOd"
+      },
+      "source": [
+        "train_df['deck'] = train_df['Cabin'].str.split('', expand = True)[1]\n",
+        "train_df.loc[train_df['deck'].isna(), 'deck'] = 'U'\n",
+        "print('Unique deck letters from the cabin numbers:', train_df['deck'].unique())"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Qedg0QVuWTOe"
+      },
+      "source": [
+        "fig = plt.figure(figsize=(20, 5))\n",
+        "\n",
+        "ax1 = fig.add_subplot(131)\n",
+        "sns.countplot(x = 'deck', data = train_df, palette = \"hls\", order = train_df['deck'].value_counts().index, ax = ax1)\n",
+        "plt.title('Passengers distribution by deck',fontsize= 16)\n",
+        "plt.ylabel('Number of passengers')\n",
+        "\n",
+        "ax2 = fig.add_subplot(132)\n",
+        "deck_by_class = train_df.groupby('deck')['Pclass'].value_counts(normalize = True).unstack()\n",
+        "deck_by_class.plot(kind='bar', stacked='True',color = ['#eed4d0', '#cda0aa', '#a2708e'], ax = ax2)\n",
+        "plt.legend(('1st class', '2nd class', '3rd class'), loc=(1.04,0))\n",
+        "plt.title('Proportion of classes on each deck',fontsize= 16)\n",
+        "plt.xticks(rotation = False)\n",
+        "\n",
+        "ax3 = fig.add_subplot(133)\n",
+        "deck_by_survived = train_df.groupby('deck')['Survived'].value_counts(normalize = True).unstack()\n",
+        "deck_by_survived = deck_by_survived.sort_values(by = 1, ascending = False)\n",
+        "deck_by_survived.plot(kind='bar', stacked='True', color=[\"#3f3e6fd1\", \"#85c6a9\"], ax = ax3)\n",
+        "plt.title('Proportion of survived/drowned passengers by deck',fontsize= 16)\n",
+        "plt.legend(( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "plt.xticks(rotation = False)\n",
+        "plt.tight_layout()\n",
+        "\n",
+        "plt.show()\n"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "sbkiUDjgWTOe"
+      },
+      "source": [
+        "La mayoría de los pasajeros no tienen números de cabina ('U').\n",
+        "La mayor parte de los pasajeros con números de cabina conocidos estaban ubicados en la cubierta 'C' y tenían boleto de primera clase. El conjunto 'C' ocupa el quinto lugar por porcentaje del superviviente.\n",
+        "La mayor tasa de supervivencia (entre los pasajeros con números de cabina conocidos) tuvo pasajeros de la cubierta 'D'.\n",
+        "La cubierta A era la más cercana a la cubierta con botes salvavidas, pero es la última en tasa de supervivencia (excepto la cubierta desconocida y T)."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "rOHTWkltWTOe"
+      },
+      "source": [
+        "## Tamaños de la familia\n",
+        "¿El tamaño de la familia a bordo afecta las posibilidades de sobrevivir a un desastre? ¿Tener hijos aumenta las posibilidades de subir a un barco o es más fácil sobrevivir estando soltero?\n",
+        "Calculo el tamaño de la familia, resumiendo el número de hermanos, esposa, hijos más 1 (pasajero mismo).\n",
+        "Tamaño de la familia = sib + parch + 1"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WE5_xSUeWTOe"
+      },
+      "source": [
+        "train_df['Family_size'] = train_df['SibSp'] + train_df['Parch'] + 1\n",
+        "family_size = train_df['Family_size'].value_counts()\n",
+        "print('Family size and number of passengers:')\n",
+        "print(family_size)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9fdyoMFCWTOf"
+      },
+      "source": [
+        "fig = plt.figure(figsize = (12,4))\n",
+        "\n",
+        "ax1 = fig.add_subplot(121)\n",
+        "ax = sns.countplot(train_df['Family_size'], ax = ax1)\n",
+        "\n",
+        "# calculate passengers for each category\n",
+        "labels = (train_df['Family_size'].value_counts())\n",
+        "# add result numbers on barchart\n",
+        "for i, v in enumerate(labels):\n",
+        "    ax.text(i, v+6, str(v), horizontalalignment = 'center', size = 10, color = 'black')\n",
+        "    \n",
+        "plt.title('Passengers distribution by family size')\n",
+        "plt.ylabel('Number of passengers')\n",
+        "\n",
+        "ax2 = fig.add_subplot(122)\n",
+        "d = train_df.groupby('Family_size')['Survived'].value_counts(normalize = True).unstack()\n",
+        "d.plot(kind='bar', color=[\"#3f3e6fd1\", \"#85c6a9\"], stacked='True', ax = ax2)\n",
+        "plt.title('Proportion of survived/drowned passengers by family size (train data)')\n",
+        "plt.legend(( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "plt.xticks(rotation = False)\n",
+        "\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "DfQ5vcONWTOf"
+      },
+      "source": [
+        "## Clase"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "pP15ZQziWTOf"
+      },
+      "source": [
+        "ax = sns.countplot(train_df['Pclass'], palette = ['#eed4d0', '#cda0aa', '#a2708e'])\n",
+        "# calculate passengers for each category\n",
+        "labels = (train_df['Pclass'].value_counts(sort = False))\n",
+        "# add result numbers on barchart\n",
+        "for i, v in enumerate(labels):\n",
+        "    ax.text(i, v+2, str(v), horizontalalignment = 'center', size = 12, color = 'black', fontweight = 'bold')\n",
+        "    \n",
+        "    \n",
+        "plt.title('Passengers distribution by family size')\n",
+        "plt.ylabel('Number of passengers')\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "rDpgf9xyWTOg"
+      },
+      "source": [
+        "fig = plt.figure(figsize=(14, 5))\n",
+        "\n",
+        "ax1 = fig.add_subplot(121)\n",
+        "sns.countplot(x = 'Pclass', hue = 'Survived', data = train_df, palette=[\"#3f3e6fd1\", \"#85c6a9\"], ax = ax1)\n",
+        "plt.title('Number of survived/drowned passengers by class (train data)')\n",
+        "plt.ylabel('Number of passengers')\n",
+        "plt.legend(( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "_ = plt.xticks(rotation=False)\n",
+        "\n",
+        "ax2 = fig.add_subplot(122)\n",
+        "d = train_df.groupby('Pclass')['Survived'].value_counts(normalize = True).unstack()\n",
+        "d.plot(kind='bar', stacked='True', ax = ax2, color =[\"#3f3e6fd1\", \"#85c6a9\"])\n",
+        "plt.title('Proportion of survived/drowned passengers by class (train data)')\n",
+        "plt.legend(( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "_ = plt.xticks(rotation=False)\n",
+        "\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IOWuUSWeWTOg"
+      },
+      "source": [
+        "\n",
+        "## Embarcado\n",
+        "El Titanic tenía 3 puntos de embarque antes de que el barco comenzara su ruta hacia Nueva York:\n",
+        "* Southampton\n",
+        "* Cherburgo\n",
+        "* Queenstown\n",
+        "\n",
+        "Algunos pasajeros podrían dejar el Titanic en Cherburgo o Queenstown y evitar una catástrofe. Además, el punto de embarque podría influir en la tarifa del billete y la ubicación en el barco."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NuLArW2VWTOg"
+      },
+      "source": [
+        "fig = plt.figure(figsize = (15,4))\n",
+        "\n",
+        "ax1 = fig.add_subplot(131)\n",
+        "palette = sns.cubehelix_palette(5, start = 2)\n",
+        "ax = sns.countplot(train_df['Embarked'], palette = palette, order = ['C', 'Q', 'S'], ax = ax1)\n",
+        "plt.title('Number of passengers by Embarked')\n",
+        "plt.ylabel('Number of passengers')\n",
+        "\n",
+        "# calculate passengers for each category\n",
+        "labels = (train_df['Embarked'].value_counts())\n",
+        "labels = labels.sort_index()\n",
+        "# add result numbers on barchart\n",
+        "for i, v in enumerate(labels):\n",
+        "    ax.text(i, v+10, str(v), horizontalalignment = 'center', size = 10, color = 'black')\n",
+        "    \n",
+        "\n",
+        "ax2 = fig.add_subplot(132)\n",
+        "surv_by_emb = train_df.groupby('Embarked')['Survived'].value_counts(normalize = True)\n",
+        "surv_by_emb = surv_by_emb.unstack().sort_index()\n",
+        "surv_by_emb.plot(kind='bar', stacked='True', color=[\"#3f3e6fd1\", \"#85c6a9\"], ax = ax2)\n",
+        "plt.title('Proportion of survived/drowned passengers by Embarked (train data)')\n",
+        "plt.legend(( 'Drowned', 'Survived'), loc=(1.04,0))\n",
+        "_ = plt.xticks(rotation=False)\n",
+        "\n",
+        "\n",
+        "ax3 = fig.add_subplot(133)\n",
+        "class_by_emb = train_df.groupby('Embarked')['Pclass'].value_counts(normalize = True)\n",
+        "class_by_emb = class_by_emb.unstack().sort_index()\n",
+        "class_by_emb.plot(kind='bar', stacked='True', color = ['#eed4d0', '#cda0aa', '#a2708e'], ax = ax3)\n",
+        "plt.legend(('1st class', '2nd class', '3rd class'), loc=(1.04,0))\n",
+        "plt.title('Proportion of clases by Embarked')\n",
+        "_ = plt.xticks(rotation=False)\n",
+        "\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "7b8Cs-qNWTOh"
+      },
+      "source": [
+        "* La mayoría de los pasajeros (914) se embarcaron en Southampton. También Southampton tiene la mayor proporción de pasajeros ahogados.\n",
+        "* 270 pasajeros se marcaron electrónicamente en Cherburgo y más del 50% de ellos sobrevivieron.\n",
+        "* 123 de los pasajeros embarcados en Queenstown, la gran mayoría de ellos son pasajeros de tercera clase."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "lsercrQyWTOj"
+      },
+      "source": [
+        "## Coste del billete"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "CBBpfgf9WTOj"
+      },
+      "source": [
+        "sns.catplot(x=\"Pclass\", y=\"Fare\", kind=\"swarm\", data=train_df, palette=sns.cubehelix_palette(5, start = 3), height = 6)\n",
+        "\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mqpHAugOWTOj"
+      },
+      "source": [
+        "Podemos observar que la distribución de precios para la segunda y tercera clase es muy similar. La distribución de los precios de primera clase es muy diferente, tiene un margen mayor y, en promedio, los precios son más altos.\n",
+        "\n",
+        "Agreguemos colores a nuestros puntos para indicar el estado de supervivencia del pasajero (solo habrá datos de la parte de entrenamiento del conjunto de datos):"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iHLUuqBiWTOk"
+      },
+      "source": [
+        "sns.catplot(x=\"Pclass\", y=\"Fare\",  hue = \"Survived\", kind=\"swarm\", data=train_df, \n",
+        "                                    palette=[\"#3f3e6fd1\", \"#85c6a9\"], height = 6)\n",
+        "plt.tight_layout()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "vVTrP_XIWTOk"
+      },
+      "source": [
+        "\n",
+        "Parece que cuanto más el pasajero paga, más oportunidades tiene de sobrevivir."
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Kq7HK4Y1WTOk"
+      },
+      "source": [
+        "## PCA y Clustering"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "sJaWzqyzWTOk"
+      },
+      "source": [
+        "from sklearn.decomposition import PCA\n",
+        "from sklearn import preprocessing"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "iOPwtiq8WTOl"
+      },
+      "source": [
+        "train_df = pd.read_csv('/content/gdrive/My Drive/alberto_tests/titanic_train.csv', dtype={'Age': np.float16})\n",
+        "train_df.head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "HO-vYUbNWTOl"
+      },
+      "source": [
+        "nans = {}\n",
+        "for colname in train_df.columns:\n",
+        "    nans[colname] = train_df[train_df[colname].isnull()].size\n",
+        "nans"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_Vd_VqODWTOl"
+      },
+      "source": [
+        "** Eliminar Cabina y ausencia de segregación por edad **"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "f_4Ivl1SWTOl"
+      },
+      "source": [
+        "old_train_data = train_df.copy()\n",
+        "train_df.drop('Cabin', 1, inplace=True)\n",
+        "train_df = train_df[train_df['Age'].notnull()]\n",
+        "train_df.size"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "XaJ4BLcwWTOm"
+      },
+      "source": [
+        "train_df['Child'] = train_df.apply(lambda row: 1 if row['Age'] < 15 else 0, axis=1)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "TqkS-ZJyWTOm"
+      },
+      "source": [
+        "train_features = ['Age', 'Fare', 'Sex_number', 'Pclass', 'Child']\n",
+        "train_df['Sex_number'] = train_df.apply(lambda row: 0 if row['Sex'] == 'male' else 1, axis=1)\n",
+        "train_X = train_df[train_features].values\n",
+        "train_Y = train_df.Survived.values\n",
+        "train_df[train_features].head()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "UDwTpAHiWTOm"
+      },
+      "source": [
+        "my_pca = PCA(n_components=2)\n",
+        "preprocessed_train = preprocessing.normalize(preprocessing.scale(train_X))\n",
+        "print(preprocessed_train.shape)\n",
+        "#missing feature scaling and normalization\n",
+        "my_pca.fit(preprocessed_train)\n",
+        "trans = my_pca.transform(preprocessed_train)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "zyQ8kUWQWTOm"
+      },
+      "source": [
+        "fig, axs = plt.subplots(3, 2, squeeze=False, sharex=True, sharey=True, figsize=(12, 18))\n",
+        "axs[0, 0].plot(trans[:,0], trans[:,1], '.')\n",
+        "axs[0, 0].set_title('PCA: Basic')\n",
+        "\n",
+        "female_trans = np.array([tran for is_female, tran in zip(train_df['Sex_number'], trans) if is_female==1])\n",
+        "axs[0, 1].plot(trans[:,0], trans[:,1], '.', label='Male')\n",
+        "axs[0, 1].plot(female_trans[:,0], female_trans[:,1], 'r.', label='Female')\n",
+        "axs[0, 1].set_title('Sex')\n",
+        "axs[0, 1].legend()\n",
+        "\n",
+        "child_trans = np.array([tran for is_child, tran in zip(train_df['Child'], trans) if is_child==1])\n",
+        "axs[1, 0].plot(trans[:,0], trans[:,1], '.', label='Adult')\n",
+        "axs[1, 0].plot(child_trans[:,0], child_trans[:,1], 'r.', label='Child')\n",
+        "axs[1, 0].set_title('Child/Adult')\n",
+        "axs[1, 0].legend()\n",
+        "\n",
+        "third_trans = np.array([tran for my_class, tran in zip(train_df['Pclass'], trans) if my_class==3])\n",
+        "second_trans = np.array([tran for my_class, tran in zip(train_df['Pclass'], trans) if my_class==2])\n",
+        "axs[1, 1].plot(trans[:,0], trans[:,1], '.', label='First')\n",
+        "axs[1, 1].plot(third_trans[:,0], third_trans[:,1], '.r', label='Second')\n",
+        "axs[1, 1].plot(second_trans[:,0], second_trans[:,1], '.g', label='Third')\n",
+        "axs[1, 1].set_title('Class')\n",
+        "axs[1, 1].legend()\n",
+        "\n",
+        "axs[2, 0].scatter(trans[:,0], trans[:,1], edgecolors='face', c=train_df['Age'].values)\n",
+        "axs[2, 0].set_title('Age')\n",
+        "\n",
+        "axs[2, 1].scatter(trans[:,0], trans[:,1], edgecolors='face', c=train_df['Fare'].values)\n",
+        "axs[2, 1].set_title('Fare')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "uxiGTjo6WTOn"
+      },
+      "source": [
+        "fig, ax = plt.subplots()\n",
+        "ax.set_facecolor('red')\n",
+        "ax.scatter(trans[:,0], trans[:,1], edgecolors='face', s=10, c=train_df['Survived'].values)\n",
+        "ax.set_title('Survival')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "W3IfwZHfWTOn"
+      },
+      "source": [
+        "from numpy import unique\n",
+        "from numpy import where\n",
+        "from sklearn.cluster import KMeans\n",
+        "from sklearn.mixture import GaussianMixture\n",
+        "from matplotlib import pyplot\n",
+        "# define the model\n",
+        "model = KMeans(n_clusters=2)\n",
+        "#model = GaussianMixture(n_components=2)\n",
+        "# fit the model\n",
+        "model.fit(trans)\n",
+        "# assign a cluster to each example\n",
+        "yhat = model.predict(trans)\n",
+        "# retrieve unique clusters\n",
+        "clusters = unique(yhat)\n",
+        "# create scatter plot for samples from each cluster\n",
+        "for cluster in clusters:\n",
+        "\t# get row indexes for samples with this cluster\n",
+        "\trow_ix = where(yhat == cluster)\n",
+        "\t# create scatter of these samples\n",
+        "\tpyplot.scatter(trans[row_ix, 0], trans[row_ix, 1])\n",
+        "# show the plot\n",
+        "pyplot.show()"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "-15R0PinWTOn"
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

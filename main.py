@@ -43,6 +43,12 @@ DESCRIPCION BREVE DEL DATASET Y LOS OBJETIVOS A CUMPLIR.\n",
         "from collections import Counter\n",
         "\n",
         "import warnings\n",
-        "warnings.filterwarnings(\"ignore\")"'''
+        "warnings.filterwarnings(\"ignore\")"
+
+CARGA DE FICHEROS
+
+ "train_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_train.csv\")\n",
+        "test_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_test.csv\")\n",
+        "test_PassengerId = train_df[\"PassengerId\"]"
 
 '''

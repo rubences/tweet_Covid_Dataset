@@ -1,0 +1,138 @@
+'''
+"# Introducción\n",
+DESCRIPCION BREVE DEL DATASET Y LOS OBJETIVOS A CUMPLIR.\n",
+"\n"
+        "Contenido: \n",
+        "\n",
+        "1. [Cargar y chequear datos](#1)\n",
+        "1. [Descripción de variables](#2)\n",
+        "    * [Analísis univariado de variables](#3)\n",
+        "        * [Variables categóricas](#4)\n",
+        "        * [Variables numéricas](#5)\n",
+        "1. [Análisis básico de datos](#6)\n",
+        "1. [Detección de outliers](#7)\n",
+        "1. [Valores perdidos](#8)\n",
+        "    * [Encontrar valores perdidos](#9)\n",
+        "    * [Rellenar valores perdidos](#10)\n",
+        "1. [Visualización](#11)\n",
+        "    * [Correlación entre variables](#12)\n",
+        "    * [DATOS A COMPARAR DEL DATASET -- DATOS_ANALIZADOS_DATASET](#13)\n",
+        "    * [SON LAS DIFERENTES VARIABLES QUE APARECEN EN LA PRIMERA FILA DEL DATASET](#12)\n",
+        "    * [Rellenar perdidos: DEL DATASET](#20)\n",
+        "1. [Ingeniería de características](#21)\n",
+        "    * [VALORES DEL DATASET](#22)\n",
+        "    * [TODOS LOS VALORES](#23)\n",
+        "    * [Eliminar VALORES NO DESEADOS DEL DATASET](#28)\n",
+        "1. [Modeling](#29)\n",
+        "    * [Train - Test Split](#30)\n",
+        "    * [Simple Logistic Regression](#31)\n",
+        "    * [Hyperparameter Tuning -- Grid Search -- Cross Validation](#32) \n",
+        "    * [Ensemble Modeling](#33)\n",
+        "    * [Prediction and Submission](#34)"
+
+#Cargar librerías necesarias \n",
+        "import numpy as np # algebra lineal\n",
+        "import pandas as pd # procesado de datos, ficheros CSV\n",
+        "import math\n",
+        "\n",
+        "import matplotlib.pyplot as plt\n",
+        "plt.style.use(\"seaborn-whitegrid\")\n",
+        "\n",
+        "import seaborn as sns\n",
+        "\n",
+        "from collections import Counter\n",
+        "\n",
+        "import warnings\n",
+        "warnings.filterwarnings(\"ignore\")"
+
+"# Cargar y chequear datos"
+
+ "train_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_train.csv\")\n",
+        "test_df = pd.read_csv(\"/content/gdrive/My Drive/alberto_tests/titanic_test.csv\")\n",
+        "test_PassengerId = train_df[\"PassengerId\"]"
+
+'''        "train_df.columns" #Vamos a escribir las columnas de nuestro dataset 
+"train_df.head()"#Vamos a sacar el nombre de las variables del archivo train
+"train_df.describe()"#Para que nos describa las variables
+"# Descripción de variables\n",# Esto es un ejemplo de nuestro titanic
+        "1. PassengerId: ID único para cada pasajero\n",
+        "1. Survived: pasajero sobrevive (1) o muere (0)\n",
+        "1. Pclass: clase del pasajero\n",
+        "1. Name: nombre\n",
+        "1. Sex: genero del pasajero\n",
+        "1. Age: edad del pasajero\n",
+        "1. SibSp: número de hermanos/conyujes\n",
+        "1. Parch: número de padres/niños \n",
+        "1. Ticket: número del ticke\n",
+        "1. Fare: cantidad de dinero que costó el ticket\n",
+        "1. Cabin: Categoría de la cabina\n",
+        "1. Embarked: Puero dónde embarcó el pasajero (C = Cherbourg, Q = Queenstown, S = Southampton)\n"
+        "train_df.info()" #informacion detallada de cada variable
+        "* float64(2): Fare, Age\n",
+        "* int64(5): Pclass, sibsp, parch, passengerId y survived\n",
+        "* object(5): Cabin, embarked, ticket, name y sex"#Informacion de las variables,ejemplo titanic
+         "# Análisis univariado de variables\n",
+        "* Variables categóricas: Survived, Sex, Pclass, Embarked, Cabin, Name, Ticket, Sibsp y Parch\n",
+        "* Variables numéricas: Fare, age y passengerId"
+        "## Variables categóricas" 
+        "def bar_plot(variable):\n",
+        "    \"\"\"\n",
+        "        input: variable ex: \"Sex\"\n",
+        "        output: bar plot & value count\n",
+        "    \"\"\"\n",
+        "    # get feature\n",
+        "    var = train_df[variable]\n",
+        "    # count number of categorical variable(value/sample)\n",
+        "    varValue = var.value_counts()\n",
+        "    \n",
+        "    # visualize\n",
+        "    plt.figure(figsize = (9,3))\n",
+        "    plt.bar(varValue.index, varValue)\n",
+        "    plt.xticks(varValue.index, varValue.index.values)\n",
+        "    plt.ylabel(\"Frecuencia\")\n",
+        "    plt.title(variable)\n",
+        "    plt.show()\n",
+        "    print(\"{}: \\n {}\".format(variable,varValue))\n",
+        "    "
+         "category1 = [\"Survived\",\"Sex\",\"Pclass\",\"Embarked\",\"SibSp\", \"Parch\"]\n",
+        "for c in category1:\n",
+        "    bar_plot(c)"
+         "category2 = [\"Cabin\", \"Name\", \"Ticket\"]\n",
+        "for c in category2:\n",
+        "    print(\"{} \\n\".format(train_df[c].value_counts()))"
+         "# Selecting categorical data for univariate analysis:\n",
+        "\n",
+        "cats = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Embarked']\n",
+        "\n",
+        "\n",
+        "def plotFrequency(cats):\n",
+        "    '''A plot for visualize categorical data, showing both absolute and relative frequencies'''\n",
+        "    \n",
+        "    fig, axes = plt.subplots(math.ceil(len(cats) / 3), 3, figsize=(20, 12))\n",
+        "    axes = axes.flatten()\n",
+        "\n",
+        "    for ax, cat in zip(axes, cats):\n",
+        "        total = float(len(train_df[cat]))\n",
+        "        sns.countplot(train_df[cat], palette='plasma', ax=ax)\n",
+        "\n",
+        "        for p in ax.patches:\n",
+        "            height = p.get_height()\n",
+        "            ax.text(p.get_x() + p.get_width() / 2.,\n",
+        "                    height + 10,\n",
+        "                    '{:1.2f}%'.format((height / total) * 100),\n",
+        "                    ha=\"center\")\n",
+        "\n",
+        "        plt.ylabel('Count', fontsize=15, weight='bold')"
+        "plotFrequency(cats)"
+          "Observaciones:\n",
+        "\n",
+        "Lamentablemente, la mayoría de los pasajeros del barco no sobreviven, alrededor de un 62% por ciento.\n",
+        "\n",
+        "Si bien tiene la mayor parte de los pasajeros en el barco, la 3ra clase también tiene la tasa de bajas más alta. Mientras tanto, la primera clase tiene más tasa de supervivencia.\n",
+        "\n",
+        "Una vez más, la mayoría de los pasajeros en el barco son hombres (alrededor de dos tercios de los pasajeros) y también tienen una proporción mucho mayor de bajas. Esto confirma que la parte de las mujeres de la \"política de mujeres y niños primero\" tuvo un efecto en nuestro caso Titanic.\n",
+        "\n",
+        "La mayoría de nuestros pasajeros viajan solos, también tienen una alta tasa de siniestralidad. Entonces, ¿estar casado o con la familia tiene algún efecto positivo en la supervivencia?\n",
+        "\n",
+        "La mayoría de los pasajeros se embarcan desde Southampton. Las tasas de supervivencia difieren entre los puertos, podemos relacionar esto con familias o simplemente usarlo como está."
+      ]
